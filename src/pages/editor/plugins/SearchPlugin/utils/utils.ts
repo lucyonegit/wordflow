@@ -3,13 +3,13 @@ import { LexicalEditor } from "lexical";
 import { CustomWordNode, offsetListMapItem } from "../../../nodes/WordNode";
 
 export type RangeResult = Array<{
-  index: number;
-  range: Range;
-  wordNode: CustomWordNode;
-  words: Array<offsetListMapItem>;
-  timeRange: [number, number];
-  el: HTMLElement;
-  offsets: [number, number];
+  index: number;  // 结果集中的序号
+  range: Range; // 浏览器Range实例
+  wordNode: CustomWordNode; //  当前Range下对应的完整行
+  words: Array<offsetListMapItem>; // 当前Range下对应的单词
+  timeRange: [number, number];  // 当前Range的时间范围
+  el: HTMLElement; // 当前Range对应的DOM
+  offsets: [number, number]; // 当前Range的offset文字偏移量
 }>
 
 /**

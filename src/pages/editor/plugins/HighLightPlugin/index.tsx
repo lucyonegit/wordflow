@@ -22,7 +22,7 @@ const HighLight: React.FC = () => {
     }
     
     nodes.current = [...editor.getEditorState()._nodeMap.values()].filter(
-      (n) => n.__type === 'scene-asr-word' || n.__type === 'scene-word-gap' || n.__type === 'scene-word-repeat' || n.__type === 'scene-word-tone',
+      (n) => n.__type === 'scene-asr-word',
     );
     let highLightNode: CustomWordNode = null as any;
     let wordNode: offsetListMapItem = null as any;

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { LexicalEditor } from 'lexical'
 
 import { useStore } from '../../../../../store/global'
+import { RangeResult } from '../utils/utils'
 
 interface CursorIndex {
   next: number
@@ -8,7 +10,7 @@ interface CursorIndex {
 }
 
 
-const useCursor = (editor, ranges): [CursorIndex, () => void] => {
+const useCursor = (editor: LexicalEditor, ranges: RangeResult): [CursorIndex, () => void] => {
   const selectedIds = useStore(state => state.selectedIds)
   const [cursorIndex, setCursorIndex] = useState({
     next: -2,
