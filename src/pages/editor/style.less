@@ -1,0 +1,84 @@
+#editorContainer {
+  background: #2c2b2b;
+
+  .scene-node {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 10px;
+    padding-left: 10px;
+    font-size: 15px;
+    background: #3a3a3a;
+    line-height: 28px;
+    content-visibility: auto;
+
+    .scene-time {
+      display: inline-block;
+      width: 40px;
+      margin-right: 10px;
+      height: 100%;
+      color: #ccc;
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .scene-words-content {
+      flex: 1;
+      .scene-asr-word{
+        display: inline-block;
+        font-size: 14px;
+        line-height: 14px;
+        word-wrap: break-word;
+        letter-spacing: 0.2px;
+
+        &:not(.Editor__textStrikethrough) {
+          color: #FFF;
+        }
+
+        &.scene-word-tone {
+          color: #e7e2e2;
+          background-color: #00f;
+        }
+
+        &.scene-word-repeat {
+          color: #e7e2e2;
+          text-decoration: underline wavy red
+        }
+
+        &.scene-word-gap {
+          display: inline-block;
+          padding: 3px;
+          border-radius: 4px;
+          color: #e7e2e2;
+          background: #5c5c60;
+          font-style: italic;
+          &:hover{
+            color: #fff;
+          }
+        }
+      }
+      .scene-asr-word::selection {
+        color: #fff;
+        background-color: #ff6a00;
+      }
+    }
+
+  }
+}
+
+
+
+.Editor__textStrikethrough {
+  text-decoration: line-through;
+  color: #888;
+}
+
+::highlight(search-normal) {
+  color: #000;
+  background-color: rgb(246, 255, 0);
+ 
+}
+
+::highlight(search-focus) {
+   color: white;
+  background-color: #f06;
+}
