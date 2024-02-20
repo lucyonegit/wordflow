@@ -119,14 +119,14 @@ export class CustomWordNode extends TextNode {
     const r = this.getWritable();
     r.isActive = status;
   }
-  updateDOM(prevNode: CustomWordNode, dom: HTMLElement) {
+  updateDOM(prevNode: CustomWordNode, dom: HTMLElement, config: EditorConfig) {
     if (prevNode.isActive !== this.isActive) {
       dom.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
       });
     }
-    return true;
+    return super.updateDOM(prevNode, dom, config);
   }
 
   exportJSON() {
