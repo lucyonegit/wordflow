@@ -86,8 +86,13 @@ export const setOffsetListMap = (
 ) => {
   let currentOffsets = offsets;
   if (offsets.length === 1) {
-    // 跨多行选择删除的时候，offset值为[number]，而不是[number, number]，因此需要重新计算
-    currentOffsets = getOffsetsFromSelectData(selectionData, WordNode);
+    if (selectionData.isClick) {
+      // 单击需要拆分的情况，例如插入新增词
+      currentOffsets = [0, offsets[0]];
+    } else {
+      // 跨多行选择删除的时候，offset值为[number]，而不是[number, number]，因此需要重新计算
+      currentOffsets = getOffsetsFromSelectData(selectionData, WordNode);
+    }
   }
   const result = getWordsByOffsets(WordNode, currentOffsets as [number, number]);
   // 将重新拼装的结果赋给splitNodes

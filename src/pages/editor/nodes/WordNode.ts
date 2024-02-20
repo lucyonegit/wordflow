@@ -66,8 +66,11 @@ export class CustomWordNode extends TextNode {
     const selectionData = getCurrentSelectionData();
     // TODO: split的结果一定是wordNode（目前项目中没有其他节点，未来需要check）
     const splitNodes = super.splitText(...offsets) as Array<CustomWordNode>;
-    // 拆分重组offsetListMap
-    setOffsetListMap(this, offsets, splitNodes, selectionData);
+    if (splitNodes.length > 1) {
+      // 拆分后有多个子WordNode的的情况才需要重组offsetListMap
+      setOffsetListMap(this, offsets, splitNodes, selectionData);
+    }
+    console.log(splitNodes)
     return splitNodes;
   }
   isSimpleText() {

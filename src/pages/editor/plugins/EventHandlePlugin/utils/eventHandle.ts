@@ -94,6 +94,7 @@ export const handleDelete = (
  * 鼠标抬起事件
  */
 export const handleKeyUp = (editor: LexicalEditor, callback?: (words: Array<Word>, node?: CustomWordNode) => void) => {
+  CSS.highlights.clear()
   editor.update(() => {
     const selectionData = getCurrentSelectionData();
     if (selectionData.isClick) {
