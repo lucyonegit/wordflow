@@ -65,8 +65,20 @@ export class CustomWordNode extends TextNode {
   splitText(...offsets: [number, number]) {
     const selectionData = getCurrentSelectionData();
     // TODO: split的结果一定是wordNode（目前项目中没有其他节点，未来需要check）
-    const splitNodes = super.splitText(...offsets) as Array<CustomWordNode>;
+    let splitNodes = super.splitText(...offsets) as Array<CustomWordNode>;
     if (splitNodes.length > 1) {
+      splitNodes = splitNodes.map((node => {
+        if (node.__type === 'text') {
+          const newNode = new CustomWordNode({
+            text: node.__text,
+            offsetListMap: [] as any,
+            wordType: node.wordType,
+          })
+          node.replace(newNode)
+          return newNode
+        }
+        return node
+      }))
       // 拆分后有多个子WordNode的的情况才需要重组offsetListMap
       setOffsetListMap(this, offsets, splitNodes, selectionData);
     }

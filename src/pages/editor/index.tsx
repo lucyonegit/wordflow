@@ -27,6 +27,26 @@ const InitPlugin:React.FC = ()=> {
   }, [editor]);
   return ''
 }
+const SplitPlugin:React.FC = ()=> {
+  const [editor] = useLexicalComposerContext();
+  
+  return (
+    <Button
+      onClick={() => {
+        const nodes = [...editor.getEditorState()._nodeMap.values()].filter(
+          (n) => n.__type === 'scene-asr-word',
+        );
+        editor.update(() => {
+          nodes[1].replace(new TextNode('hello'))
+        })
+        
+        console.log(nodes[1])
+      }}
+    >
+      拆分node
+    </Button>
+  )
+}
 const ScriptProvider:React.FC = ()=> {
   const warper = useRef(null);
   const time1 = useRef(0);
@@ -55,17 +75,17 @@ const ScriptProvider:React.FC = ()=> {
       CustomSceneNode,
       CustomWordContentNode,
       CustomWordNode,
-      {
-        replace: TextNode,
-        with: (node) => {
-          const config = {
-            text: node.__text,
-            offsetListMap: [],
-            ...node,
-          };
-          return new CustomWordNode(config);
-        },
-      },
+      // {
+      //   replace: TextNode,
+      //   with: (node) => {
+      //     const config = {
+      //       text: node.__text,
+      //       offsetListMap: [],
+      //       ...node,
+      //     };
+      //     return new CustomWordNode(config);
+      //   },
+      // },
     ],
   });
   const [warperLoaded, setWarperLoaded] = useState(false);
@@ -116,6 +136,7 @@ const ScriptProvider:React.FC = ()=> {
             defaultValue={0}
             onChange={(value) => setCurrentTime(value)}
           />
+          <SplitPlugin></SplitPlugin>
         </div>
       </div>
     </LexicalComposer>

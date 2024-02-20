@@ -278,7 +278,7 @@ export const handleClickKeyup = (
   const nodes = selectionData.nodes;
   // 点击单词
   const node = nodes[0] as CustomWordNode;
-  const words = Object.values(node.offsetListMap);
+  const words = Object.values(node.offsetListMap || {});
   if (words.length) {
     const nextSiblingNode = node.getNextSibling() as CustomWordNode;
     const isLastClick = selectionData.focus.offset === words[words.length - 1].range[1];

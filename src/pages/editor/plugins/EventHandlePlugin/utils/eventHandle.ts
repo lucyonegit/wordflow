@@ -25,7 +25,7 @@ export const handleDelete = (
     const selectRange = getSelectRange(selectionData);
     //处理选中单句删除的情况
     const node = nodes[0] as CustomWordNode;
-    const wordsNodes = Object.values(node.offsetListMap);
+    const wordsNodes = Object.values(node.offsetListMap || {});
     // 删除的是普通自定义word
     if (node.offsetListMap && wordsNodes.length) {
       event.preventDefault(); // 阻止默认删除事件
