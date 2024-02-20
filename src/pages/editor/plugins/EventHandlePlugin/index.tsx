@@ -12,8 +12,7 @@ const EventPlugin = () => {
   useEvent(editor);
 
   const handleBackspace = (e:KeyboardEvent) => {
-    e.preventDefault();
-    handleDelete(editor);
+    handleDelete(editor,e);
     return true;
   };
   editor.registerCommand(

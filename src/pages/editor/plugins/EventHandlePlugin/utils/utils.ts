@@ -44,17 +44,21 @@ export const setSelectRange = (
   node: CustomWordNode,
   range: [number, number],
   callback?: () => void,
+  isClick?: boolean
 ) => {
   editor.update(() => {
-    const textNode = editor.getElementByKey(node.__key)?.firstChild as Text;
-    const domRange = new Range();
-    domRange.setStart(textNode, range[0]);
-    domRange.setEnd(textNode, range[1]);
-    const focusHighlight = new Highlight(domRange);
-    CSS.highlights.set("search-focus", focusHighlight);
+    if (isClick) {
+      // 单击的情况，兼容新增词的情况，需要手动处理光标位置，即不能设置为闭合选区
+      const textNode = editor.getElementByKey(node.__key)?.firstChild as Text;
+      const domRange = new Range();
+      domRange.setStart(textNode, range[0]);
+      domRange.setEnd(textNode, range[1]);
+      const focusHighlight = new Highlight(domRange);
+      CSS.highlights.set("search-focus", focusHighlight);
+    }
     const rangeSelection = $createRangeSelection();
     rangeSelection.formatText('italic')
-    rangeSelection.setTextNodeRange(node, range[0], node, range[0]);
+    rangeSelection.setTextNodeRange(node, range[0], node, isClick ? range[0] : range[1]);
     $setSelection(rangeSelection);
     callback && callback();
   });
@@ -279,7 +283,7 @@ export const handleClickKeyup = (
     const nextSiblingNode = node.getNextSibling() as CustomWordNode;
     const isLastClick = selectionData.focus.offset === words[words.length - 1].range[1];
     // 有兄弟节点，而且不是删除线节点，就跳到后面兄弟节点的第一个word上
-    if (isLastClick && nextSiblingNode && !nextSiblingNode.hasFormat('strikethrough')) {
+    if (isLastClick && nextSiblingNode && !nextSiblingNode.hasFormat('strikethrough') && nextSiblingNode.offsetListMap.length) {
       const wordNodeLists = Object.values(nextSiblingNode.offsetListMap);
       const wordNode = wordNodeLists.filter((wordNode) => wordNode.word.text)[0];
       setSelectRange(editor, nextSiblingNode, wordNode.range);
@@ -287,7 +291,7 @@ export const handleClickKeyup = (
       const selectRange = getSelectRange(selectionData);
       if (node && node.offsetListMap) {
         if (selectRange[0] >= words[words.length - 1].range[1]) {
-          // 已经到了最右边了
+          // 已经到了最右边了,准备插入新增词
           const rangeSelection = $createRangeSelection();
           rangeSelection.formatText('italic')
           rangeSelection.setTextNodeRange(node, selectRange[0], node, selectRange[0]);
@@ -304,12 +308,15 @@ export const handleClickKeyup = (
             //   // 标点符号不处理
             //   return;
             // }
-            setSelectRange(editor, node, range);
-            callback && callback([word], node);
+            setSelectRange(editor, node, range, () => {
+              callback && callback([word], node);
+            }, true);
           }
         });
       }
     }
+  } else {
+    // TODO: 选中新增词逻辑
   }
 };
 

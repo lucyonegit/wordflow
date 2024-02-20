@@ -70,7 +70,6 @@ export class CustomWordNode extends TextNode {
       // 拆分后有多个子WordNode的的情况才需要重组offsetListMap
       setOffsetListMap(this, offsets, splitNodes, selectionData);
     }
-    console.log(splitNodes)
     return splitNodes;
   }
   isSimpleText() {

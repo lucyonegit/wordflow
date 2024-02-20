@@ -16,6 +16,7 @@ import {
 
 export const handleDelete = (
   editor: LexicalEditor,
+  event: KeyboardEvent,
   callback?: { (words: Array<Word>): void },
 ) => {
   const selectionData = getCurrentSelectionData();
@@ -26,7 +27,8 @@ export const handleDelete = (
     const node = nodes[0] as CustomWordNode;
     const wordsNodes = Object.values(node.offsetListMap);
     // 删除的是普通自定义word
-    if (node.offsetListMap) {
+    if (node.offsetListMap && wordsNodes.length) {
+      event.preventDefault(); // 阻止默认删除事件
       //光标未选中任何区间，判断是否需要创建选区
       const needSelectRange = selectRange[0] === selectRange[1];
       if (needSelectRange) {
@@ -64,8 +66,11 @@ export const handleDelete = (
         const range = needSelectRange ? preWordNode.range : nextWordNode.range;
         setSelectRange(editor, copyNode, range);
       }
+    } else {
+      // 删除新增词等其他词
     }
   } else {
+    event.preventDefault();
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
     const firstNode = selectionData.indexNode.getNode() as CustomWordNode;
     if (selectionData.indexNode.offset === 0) {
