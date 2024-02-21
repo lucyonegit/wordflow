@@ -9,8 +9,8 @@ export const useEvent = (editor: LexicalEditor) => {
   useEffect(() => {
     const rootDom = editor.getRootElement();
     const handle = () =>
-      handleKeyUp(editor, (words: Array<Word>) => {
-        console.log(words);
+      handleKeyUp(editor, (words: Array<Word>, node: any) => {
+        console.log(words, node);
         setSelectedIds(words)
       });
     rootDom && rootDom.addEventListener('mouseup', handle);

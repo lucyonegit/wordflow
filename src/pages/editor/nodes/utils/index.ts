@@ -51,22 +51,25 @@ export const getWordsByOffsets = (
       const wordLength = wordNode.word.text.length;
       if (wordNode.range[1] <= offsets[0]) {
         wordNode.range = [preLeftOffsetStart, preLeftOffsetStart + wordLength];
-        wordNode.pre = leftCount === 0 ? -1 : leftCount;
+        wordNode.pre = leftCount === 0 ? -1 : leftCount - 1;
         wordNode.next = leftCount + 1;
+        wordNode.index = leftCount;
         result.leftWords[wordNodeId] = wordNode;
         preLeftOffsetStart += wordLength;
         leftCount++;
       } else if (wordNode.range[0] >= offsets[1]) {
         wordNode.range = [preRightOffsetStart, preRightOffsetStart + wordLength];
-        wordNode.pre = rightCount === 0 ? -1 : rightCount;
+        wordNode.pre = rightCount === 0 ? -1 : rightCount - 1;
         wordNode.next = rightCount + 1;
+        wordNode.index = rightCount;
         result.rightWords[wordNodeId] = wordNode;
         preRightOffsetStart += wordLength;
         rightCount++;
       } else {
         wordNode.range = [preInnerOffsetStart, preInnerOffsetStart + wordLength];
-        wordNode.pre = innerCount === 0 ? -1 : innerCount;
+        wordNode.pre = innerCount === 0 ? -1 : innerCount - 1;
         wordNode.next = innerCount + 1;
+        wordNode.index = innerCount;
         result.innerWord[wordNodeId] = wordNode;
         preInnerOffsetStart += wordLength;
         innerCount++;
@@ -138,7 +141,7 @@ export const combineOffsetListMap = (
   const newOffsetListMap = copyWordList.reduce((result, cur) => {
     const curWordLength = cur.word.text.length;
     cur.range = [offset, offset + curWordLength];
-    cur.pre = wordCount === 0 ? -1 : wordCount;
+    cur.pre = wordCount === 0 ? -1 : wordCount - 1;
     cur.next = wordCount + 1;
     result[cur.word.id] = cur;
     offset += curWordLength;

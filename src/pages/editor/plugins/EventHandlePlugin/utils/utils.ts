@@ -283,10 +283,17 @@ export const handleClickKeyup = (
     const nextSiblingNode = node.getNextSibling() as CustomWordNode;
     const isLastClick = selectionData.focus.offset === words[words.length - 1].range[1];
     // 有兄弟节点，而且不是删除线节点，就跳到后面兄弟节点的第一个word上
-    if (isLastClick && nextSiblingNode && !nextSiblingNode.hasFormat('strikethrough') && nextSiblingNode.offsetListMap.length) {
-      const wordNodeLists = Object.values(nextSiblingNode.offsetListMap);
-      const wordNode = wordNodeLists.filter((wordNode) => wordNode.word.text)[0];
-      setSelectRange(editor, nextSiblingNode, wordNode.range);
+    if (isLastClick && nextSiblingNode && !nextSiblingNode.hasFormat('strikethrough')) {
+      if (nextSiblingNode.offsetListMap) {
+        // 普通WordNode
+        const wordNodeLists = Object.values(nextSiblingNode.offsetListMap);
+        const wordNode = wordNodeLists.filter((wordNode) => wordNode.word.text)[0];
+        setSelectRange(editor, nextSiblingNode, wordNode.range);
+      } else {
+        // 新增词等
+        setSelectRange(editor, nextSiblingNode, [0, nextSiblingNode.__text.length]);
+      }
+
     } else {
       const selectRange = getSelectRange(selectionData);
       if (node && node.offsetListMap) {
@@ -316,7 +323,9 @@ export const handleClickKeyup = (
       }
     }
   } else {
+    setSelectRange(editor, node, [0, node.__text.length]);
     // TODO: 选中新增词逻辑
+    callback && callback([], node);
   }
 };
 

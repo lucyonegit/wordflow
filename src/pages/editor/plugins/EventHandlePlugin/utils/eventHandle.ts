@@ -51,9 +51,15 @@ export const handleDelete = (
       if (selectRange[0] === 0) {
         const previousNode = findNextFocusWord(node);
         if (previousNode) {
-          const wordsNodes = Object.values(previousNode.offsetListMap);
-          const nextWordNode = wordsNodes[wordsNodes.length - 1];
-          setSelectRange(editor, previousNode, nextWordNode.range);
+          if (previousNode.offsetListMap) {
+            const wordsNodes = Object.values(previousNode.offsetListMap);
+            const nextWordNode = wordsNodes[wordsNodes.length - 1];
+            setSelectRange(editor, previousNode, nextWordNode.range);
+          } else {
+            // 普通新增词，就直接选中它
+            setSelectRange(editor, previousNode, [0, previousNode.__text.length]);
+          }
+
         } else {
           console.log('ending---别删了');
         }
