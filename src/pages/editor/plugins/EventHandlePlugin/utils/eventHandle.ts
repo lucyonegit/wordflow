@@ -59,7 +59,6 @@ export const handleDelete = (
             // 普通新增词，就直接选中它
             setSelectRange(editor, previousNode, [0, previousNode.__text.length]);
           }
-
         } else {
           console.log('ending---别删了');
         }
@@ -73,7 +72,7 @@ export const handleDelete = (
         setSelectRange(editor, copyNode, range);
       }
     } else {
-      // 删除新增词等其他词
+      // 删除新增词等其他词，后面还需移动光标
     }
   } else {
     event.preventDefault();

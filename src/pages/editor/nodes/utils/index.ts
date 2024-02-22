@@ -49,7 +49,8 @@ export const getWordsByOffsets = (
       // 这里需要深拷贝一份数据，避免对影响WordNode原节点，后面的运算要依赖WordNode未拆分前的offset数据
       const wordNode = JSON.parse(JSON.stringify(WordNodes.offsetListMap[wordNodeId]));
       const wordLength = wordNode.word.text.length;
-      if (wordNode.range[1] <= offsets[0]) {
+      // 这里要去除[0,xx]这种情况，offsets[0] !== 0，不然leftWords会多一个出来
+      if (wordNode.range[1] <= offsets[0] && offsets[0] !== 0) {
         wordNode.range = [preLeftOffsetStart, preLeftOffsetStart + wordLength];
         wordNode.pre = leftCount === 0 ? -1 : leftCount - 1;
         wordNode.next = leftCount + 1;
@@ -104,17 +105,14 @@ export const setOffsetListMap = (
   // tips:全选的case不用处理
   if (currentOffsets[0] === 0 && lastWordRange[1] !== currentOffsets[1]) {
     // 左边边界
-    console.log('左边边界');
     splitNodes[0].offsetListMap = { ...result.leftWords, ...result.innerWord };
     splitNodes[1].offsetListMap = { ...result.rightWords };
   } else if (currentOffsets[0] !== 0 && lastWordRange[1] === currentOffsets[1]) {
     // 右边边界
-    console.log('右边边界');
     splitNodes[0].offsetListMap = { ...result.leftWords };
     splitNodes[1].offsetListMap = { ...result.innerWord, ...result.rightWords };
   } else {
     // 中间选中
-    console.log('中间选中');
     splitNodes[0].offsetListMap = result.leftWords;
     splitNodes[1].offsetListMap = result.innerWord;
     splitNodes[2].offsetListMap = result.rightWords;
