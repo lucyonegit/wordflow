@@ -4,13 +4,13 @@ import { Word } from '../../../nodes/WordNode';
 import { CustomWordNode } from '../../../nodes/WordNode';
 
 import {
-  findNextFocusWord,
   getCurrentSelectionData,
   getLeftRightWordByOffset,
   getSelectRange,
   getWordNodesByOffsetRange,
   handleClickKeyup,
   handleRangeSelectKeyup,
+  highlightNextWord,
   setSelectRange,
 } from './utils';
 
@@ -47,21 +47,9 @@ export const handleDelete = (
         editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
         callback && callback(offsetListMapItemList.map((item) => item.word));
       }
-      // 光标选中到节点头部
+      // 光标选中到节点头部，寻找并且选中下一个节点
       if (selectRange[0] === 0) {
-        const previousNode = findNextFocusWord(node);
-        if (previousNode) {
-          if (previousNode.offsetListMap) {
-            const wordsNodes = Object.values(previousNode.offsetListMap);
-            const nextWordNode = wordsNodes[wordsNodes.length - 1];
-            setSelectRange(editor, previousNode, nextWordNode.range);
-          } else {
-            // 普通新增词，就直接选中它
-            setSelectRange(editor, previousNode, [0, previousNode.__text.length]);
-          }
-        } else {
-          console.log('ending---别删了');
-        }
+        highlightNextWord(editor, node);
       } else {
         // 如果光标未闭合，就选取右侧的offset计算下一个高亮的word,(句子末尾点击的情况)，否则就选取左边的
         const offset = needSelectRange ? selectRange[1] : selectRange[0];
@@ -73,21 +61,18 @@ export const handleDelete = (
       }
     } else {
       // 删除新增词等其他词，后面还需移动光标
+      setSelectRange(editor, node, [0, node.__text.length], () => {
+        editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
+        // TODO: 返回值
+        callback && callback([]);
+      });
     }
   } else {
     event.preventDefault();
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
     const firstNode = selectionData.indexNode.getNode() as CustomWordNode;
     if (selectionData.indexNode.offset === 0) {
-      const previousNode = findNextFocusWord(firstNode);
-      if (previousNode) {
-        const wordsNodes = Object.values(previousNode.offsetListMap);
-        const nextWordNode = wordsNodes[wordsNodes.length - 1];
-        setSelectRange(editor, previousNode, nextWordNode.range);
-      } else {
-        // 处理全部删除完了的情况
-        console.log('ending---别删了');
-      }
+      highlightNextWord(editor, firstNode);
     } else {
       // 选取offset计算下一个高亮的word
       const nextWordNode = getLeftRightWordByOffset(

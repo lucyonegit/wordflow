@@ -128,14 +128,18 @@ export const getWordNodesByOffsetRange = (
 ) => {
   const copyNode = JSON.parse(JSON.stringify(node));
   const wordNodes: Array<offsetListMapItem> = [];
-  Object.keys(copyNode.offsetListMap).forEach((key) => {
-    const range = copyNode.offsetListMap[key].range;
-    if (range[0] !== range[1]) {
-      if (range[0] < selectRange[1] && range[1] > selectRange[0]) {
-        wordNodes.push(copyNode.offsetListMap[key]);
+  if (copyNode.offsetListMap) {
+    Object.keys(copyNode.offsetListMap).forEach((key) => {
+      const range = copyNode.offsetListMap[key].range;
+      if (range[0] !== range[1]) {
+        if (range[0] < selectRange[1] && range[1] > selectRange[0]) {
+          wordNodes.push(copyNode.offsetListMap[key]);
+        }
       }
-    }
-  });
+    });
+  } else {
+    wordNodes.push(node as any)
+  }
   return wordNodes;
 };
 
@@ -157,15 +161,23 @@ export const expandRange = (
 ): [number, number] => {
   const wordNodes = getWordNodesByOffsetRange(node, selectRange);
   const finnalRange = [...selectRange] as [number, number];
-  // 处理光标落在单词内部的情况， 自动进行range边界扩展覆盖到整个word
-  if (wordNodes[0] && wordNodes[0].range[0] < selectRange[0]) {
-    finnalRange[0] = wordNodes[0].range[0];
+  if (wordNodes[0] && node instanceof CustomWordNode) {
+    // 处理光标落在单词内部的情况， 自动进行range边界扩展覆盖到整个word
+    if (wordNodes[0].range[0] < selectRange[0]) {
+      finnalRange[0] = wordNodes[0].range[0];
+    }
+  } else {
+    finnalRange[0] = 0
   }
-  if (
-    wordNodes[wordNodes.length - 1] &&
-    wordNodes[wordNodes.length - 1].range[1] > selectRange[1]
-  ) {
-    finnalRange[1] = wordNodes[wordNodes.length - 1].range[1];
+  if (wordNodes[wordNodes.length - 1] && node instanceof CustomWordNode) {
+    if (
+      wordNodes[wordNodes.length - 1] &&
+      wordNodes[wordNodes.length - 1].range[1] > selectRange[1]
+    ) {
+      finnalRange[1] = wordNodes[wordNodes.length - 1].range[1];
+    }
+  } else {
+    finnalRange[1] = node.__text?.length
   }
   return finnalRange;
 };
@@ -187,10 +199,21 @@ export const expandMultiRowRange = (selectionData: SelectDataType): [number, num
   let focusOffset = selectionData.focus.offset;
   let anchorOffset = selectionData.anchor.offset;
   if (focusWordNode) {
-    focusOffset = isLeftToRight ? focusWordNode.range[1] : focusWordNode.range[0];
+    if (focusWordNode.range) {
+      focusOffset = isLeftToRight ? focusWordNode.range[1] : focusWordNode.range[0];
+    } else {
+      const node = focusWordNode as any
+      focusOffset = isLeftToRight ? node.__text.length : 0;
+    }
+
   }
   if (anchorWordNode) {
-    anchorOffset = isLeftToRight ? anchorWordNode.range[0] : anchorWordNode.range[1];
+    if (anchorWordNode.range) {
+      anchorOffset = isLeftToRight ? anchorWordNode.range[0] : anchorWordNode.range[1];
+    } else {
+      const node = anchorWordNode as any
+      anchorOffset = isLeftToRight ? 0 : node.__text.length;
+    }
   }
   return [anchorOffset, focusOffset];
 };
@@ -225,12 +248,18 @@ export const getNodeInOffset = (
   offset: number,
 ): offsetListMapItem => {
   let wordNodes = null as any;
-  Object.keys(node.offsetListMap).forEach((key) => {
-    const range = node.offsetListMap[key].range;
-    if (range[0] < offset && range[1] > offset) {
-      wordNodes = node.offsetListMap[key];
-    }
-  });
+  if (node.offsetListMap) {
+    Object.keys(node.offsetListMap).forEach((key) => {
+      const range = node.offsetListMap[key].range;
+      if (range[0] < offset && range[1] > offset) {
+        wordNodes = node.offsetListMap[key];
+      }
+    });
+  } else {
+    // 普通词
+    wordNodes = node;
+  }
+
   return wordNodes;
 };
 
@@ -344,7 +373,7 @@ export const handleRangeSelectKeyup = (
     setSelectRange(editor, node, finnalRange);
     callback &&
       callback(
-        getWordNodesByOffsetRange(node, finnalRange).map((r) => r.word),
+        node instanceof CustomWordNode ? getWordNodesByOffsetRange(node, finnalRange).map((r) => r.word, node) : node,
         node,
       );
   } else {
@@ -402,3 +431,20 @@ export const findNextFocusWord = (node: CustomWordNode): CustomWordNode | null =
     }
   }
 };
+
+
+export const highlightNextWord = (editor, node: CustomWordNode): void => {
+  const previousNode = findNextFocusWord(node);
+  if (previousNode) {
+    if (previousNode.offsetListMap) {
+      const wordsNodes = Object.values(previousNode.offsetListMap);
+      const nextWordNode = wordsNodes[wordsNodes.length - 1];
+      setSelectRange(editor, previousNode, nextWordNode.range);
+    } else {
+      // 普通新增词，就直接选中它
+      setSelectRange(editor, previousNode, [0, previousNode.__text.length]);
+    }
+  } else {
+    console.log('end');
+  }
+}
