@@ -26,13 +26,15 @@ const HighLight: React.FC = () => {
     );
     let highLightNode: CustomWordNode = null as any;
     let wordNode: offsetListMapItem = null as any;
-    nodes.current.forEach((node) => {
-      const words = Object.values(node.offsetListMap) as Array<offsetListMapItem>;
-      for (const w of words) {
-        // 检查时间戳是否在区间内;
-        if (progress >= w.word.st && progress <= w.word.ed) {
-          wordNode = w;
-          highLightNode = node;
+    nodes.current.forEach((node: CustomWordNode) => {
+      if (node.__format !== 4) {
+        const words = Object.values(node.offsetListMap) as Array<offsetListMapItem>;
+        for (const w of words) {
+          // 检查时间戳是否在区间内;
+          if (progress >= w.word.st && progress <= w.word.ed) {
+            wordNode = w;
+            highLightNode = node;
+          }
         }
       }
     });
