@@ -7,21 +7,21 @@
     margin-bottom: 10px;
     padding-left: 10px;
     font-size: 15px;
-    background: #3a3a3a;
     line-height: 28px;
     content-visibility: auto;
-
+    word-break: break-all;
+    
     .scene-time {
+      font-size: 10px;
       display: inline-block;
-      width: 40px;
-      margin-right: 10px;
+      width: 32px;
+      margin-right: 12px;
       height: 100%;
-      color: #ccc;
-      font-size: 12px;
+      color: #99979c;
       user-select: none;
     }
 
-    .scene-words-content {
+    .scene-content {
       flex: 1;
       .scene-asr-word{
         display: inline-block;
@@ -34,18 +34,19 @@
           color: #FFF;
         }
 
-        &.scene-word-tone {
+        &.scene-asr-word-tone {
           color: #e7e2e2;
           background-color: #00f;
         }
 
-        &.scene-word-repeat {
+        &.scene-asr-word-repeat {
           color: #e7e2e2;
           text-decoration: underline wavy red
         }
 
-        &.scene-word-gap {
+        &.scene-asr-word-gap {
           display: inline-block;
+          font-style: italic;
           padding: 3px;
           border-radius: 4px;
           color: #e7e2e2;
@@ -58,7 +59,7 @@
       }
       .scene-asr-word::selection {
         color: #fff;
-        background-color: #ff6a00;
+        background-color: #147175;
       }
     }
 
@@ -77,12 +78,10 @@
 
 ::highlight(search-normal) {
   color: #000;
-  
   background-color: rgb(246, 255, 0);
- 
 }
 
 ::highlight(search-focus) {
-   color: white;
-  background-color: #f06;
+  color: white;
+  background-color: #7f0fdc;
 }

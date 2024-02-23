@@ -35,7 +35,7 @@ export class CustomWordContentNode extends ElementNode {
 
   createDOM() {
     const dom = document.createElement('div');
-    dom.classList.add('scene-words-content');
+    dom.classList.add('scene-content');
     return dom;
   }
 

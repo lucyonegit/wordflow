@@ -116,15 +116,15 @@ export class CustomWordNode extends TextNode {
     dom.classList.add('scene-asr-word');
     // 增加停顿词类名
     if (this.wordType === 'gap') {
-      dom.classList.add('scene-word-gap');
+      dom.classList.add('scene-asr-word-gap');
     }
     // 增加语气词类名
     if (this.wordType === 'tone') {
-      dom.classList.add('scene-word-tone');
+      dom.classList.add('scene-asr-word-tone');
     }
     // 增加重复词类名
     if (this.wordType === 'repeat') {
-      dom.classList.add('scene-word-repeat');
+      dom.classList.add('scene-asr-word-repeat');
     }
     return dom;
   }
