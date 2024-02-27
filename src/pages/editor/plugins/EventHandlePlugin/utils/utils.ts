@@ -82,6 +82,91 @@ export const setMutiSelectRange = (
   });
 };
 
+export const getWordGroupFromSelectionData = (selectionData: SelectDataType): {
+  customWords: Array<offsetListMapItem>;
+  hasDeleteWords: Array<offsetListMapItem>;
+  insertWords: Array<any>;
+} => {
+  debugger
+  const anchor = selectionData.anchor;
+  const focus = selectionData.focus;
+  const wordGroup: {
+    customWords: Array<offsetListMapItem>;
+    hasDeleteWords: Array<offsetListMapItem>;
+    insertWords: Array<any>;
+  } = {
+    customWords: [],  //正常单词
+    hasDeleteWords: [], // 已经删除的单词
+    insertWords: [] // 新增的单词
+  }
+  // Anchor逻辑
+  if (anchor.node.__type === 'text') {
+    // 新增词节点
+    wordGroup.insertWords.push(anchor.node)
+  } else {
+    // 普通单词
+    const anchorWords = Object.values(anchor.node.offsetListMap).filter(
+      (offsetListItem) => {
+        return selectionData.isLeftToRight
+          ? offsetListItem.range[0] >= anchor.offset
+          : offsetListItem.range[1] <= anchor.offset;
+      },
+    );
+    if (anchor.node.hasFormat('strikethrough')) {
+      // 普通单词+删除线
+      wordGroup.hasDeleteWords.push(...anchorWords)
+    } else {
+      // 普通单词
+      wordGroup.customWords.push(...anchorWords)
+    }
+  }
+  // 
+  // 选中的单词
+  selectionData.selectedNodes.forEach((curNode) => {
+    const isInsert = curNode.__type === 'text'
+    const hasFormat = curNode.hasFormat('strikethrough')
+    if (isInsert) {
+      // 新增词
+      wordGroup.insertWords.push(curNode)
+    } else {
+      if (hasFormat) {
+        // 删除词
+        const wordsNode = Object.values(curNode.offsetListMap || {});
+        wordGroup.hasDeleteWords.push(...wordsNode);
+      } else {
+        // 正常词
+        const wordsNode = Object.values(curNode.offsetListMap);
+        wordGroup.customWords.push(...wordsNode)
+      }
+    }
+  });
+  //
+  // Focus逻辑
+  if (focus.node.__type === 'text') {
+    // 新增词节点
+    wordGroup.insertWords.push(focus.node)
+  } else {
+    // 普通单词
+    const focusWords = Object.values(focus.node.offsetListMap).filter(
+      (offsetListItem) => {
+        return selectionData.isLeftToRight
+          ? offsetListItem.range[1] <= focus.offset
+          : offsetListItem.range[0] >= focus.offset;
+      },
+    );
+    const shouldNotDelete = focusWords.length === 1 && !focusWords[0].word.text;
+    const finnalWords = shouldNotDelete ? [] : focusWords
+    if (focus.node.hasFormat('strikethrough')) {
+      // 普通单词+删除线
+      wordGroup.hasDeleteWords.push(...finnalWords)
+    } else {
+      // 普通单词
+      wordGroup.customWords.push(...finnalWords)
+    }
+  }
+  return wordGroup
+}
+
 /**
  * 获取当前选区数据
  */
@@ -291,7 +376,9 @@ export const computedSelectedWords = (
         : offsetListItem.range[0] >= focusOffset;
     },
   );
-  const selectedWords = [...anchorWords, ...innerWords, ...focusWords];
+  const shouldNotDelete = focusWords.length === 1 && !focusWords[0].word.text
+  const focusDelete = shouldNotDelete ? [] : focusWords
+  const selectedWords = [...anchorWords, ...innerWords, ...focusDelete];
 
   return selectedWords.sort(
     (wordNode1, wordNode2) => wordNode1.word.st - wordNode2.word.st,

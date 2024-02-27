@@ -1,4 +1,8 @@
+import { $getRoot } from 'lexical'
+
 import { SelectDataType } from '../../plugins/EventHandlePlugin/utils/utils';
+import { CustomSceneNode } from '../SceneNode';
+import { CustomWordContentNode } from '../WordContentNode';
 import { CustomWordNode, offsetListMapItem } from '../WordNode';
 
 export const getOffsetsFromSelectData = (
@@ -79,6 +83,80 @@ export const getWordsByOffsets = (
   }
   return result;
 };
+
+/**
+ *  根据删除节点距离最近的wordNode的offset改变文字startTime和endTime
+ */
+const changeStartEndTimeByOffsetStart = (node: CustomWordNode, offset: number) => {
+  if (node.offsetListMap) {
+    const ids = Object.keys(node.offsetListMap)
+    ids.forEach(id => {
+      const word = node.offsetListMap[id].word;
+      word.st = word.st - offset;
+      word.ed = word.ed - offset;
+    })
+  }
+}
+
+const findNextCustomWordNode = (deleteNode: CustomWordNode): CustomWordNode | null => {
+  let nextWordNode: CustomWordNode = null as any;
+  while (!nextWordNode) {
+    nextWordNode = deleteNode.getNextSibling() as CustomWordNode;
+    if (!nextWordNode) {
+      break;
+    }
+  }
+  if (nextWordNode) {
+    return nextWordNode;
+  } else {
+    const sceneNode = deleteNode.getParent().getParent() as CustomSceneNode;
+    const nextSceneNode = sceneNode.getNextSibling() as CustomSceneNode;
+    if (nextSceneNode) {
+      const contentNode = nextSceneNode.getFirstChild() as CustomWordContentNode;
+      const wordNode = contentNode.getFirstChild() as CustomWordNode;
+      if (wordNode) {
+        if (wordNode.__type === 'scene-asr-word') {
+          return wordNode as CustomWordNode;
+        } else {
+          return findNextCustomWordNode(wordNode)
+        }
+      } else {
+        return null
+      }
+    } else {
+      return null
+    }
+  }
+}
+
+/**
+ * 拆分单词后重新计算每个word的时间
+ */
+const computedTime = (deleteNode: CustomWordNode) => {
+  const root = $getRoot();
+  const allWordNodes = root.getAllTextNodes().filter(node => node.__type === 'scene-asr-word') as Array<CustomWordNode>;
+  const firstUnderWordNode = findNextCustomWordNode(deleteNode);
+  if (!firstUnderWordNode) return;
+  const firstUnderWord = Object.values(firstUnderWordNode.offsetListMap || {})[0];
+  const firstUnderWorStartTime = firstUnderWord.word.st;
+
+  const firstDeleteWordInWord = Object.values(deleteNode.offsetListMap || {})[0];
+  const deleteWordStartTime = firstDeleteWordInWord.word.st;
+  const offset = firstUnderWorStartTime - deleteWordStartTime;
+  allWordNodes.forEach((node) => {
+    const firstWordInWord = Object.values(node.offsetListMap || {})[0];
+    if (firstWordInWord) {
+      const startTime = firstWordInWord.word.st;
+      if (startTime >= firstUnderWorStartTime) {
+        changeStartEndTimeByOffsetStart(node, offset);
+      }
+    }
+  })
+
+}
+
+
+
 /**
  * 给拆分的WordNode设置offsetListMap
  */
@@ -107,15 +185,18 @@ export const setOffsetListMap = (
     // 左边边界
     splitNodes[0].offsetListMap = { ...result.leftWords, ...result.innerWord };
     splitNodes[1].offsetListMap = { ...result.rightWords };
+    computedTime(splitNodes[0]);
   } else if (currentOffsets[0] !== 0 && lastWordRange[1] === currentOffsets[1]) {
     // 右边边界
     splitNodes[0].offsetListMap = { ...result.leftWords };
     splitNodes[1].offsetListMap = { ...result.innerWord, ...result.rightWords };
+    computedTime(splitNodes[1]);
   } else {
     // 中间选中
     splitNodes[0].offsetListMap = result.leftWords;
     splitNodes[1].offsetListMap = result.innerWord;
     splitNodes[2].offsetListMap = result.rightWords;
+    computedTime(splitNodes[1]);
   }
 };
 

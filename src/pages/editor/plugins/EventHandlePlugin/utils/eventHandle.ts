@@ -7,6 +7,7 @@ import {
   getCurrentSelectionData,
   getLeftRightWordByOffset,
   getSelectRange,
+  getWordGroupFromSelectionData,
   getWordNodesByOffsetRange,
   handleClickKeyup,
   handleRangeSelectKeyup,
@@ -69,7 +70,9 @@ export const handleDelete = (
     }
   } else {
     event.preventDefault();
+    const deleteWordsMap = getWordGroupFromSelectionData(selectionData)
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
+    callback && callback(deleteWordsMap.customWords.map((r) => r.word));
     const firstNode = selectionData.indexNode.getNode() as CustomWordNode;
     if (selectionData.indexNode.offset === 0) {
       highlightNextWord(editor, firstNode);
