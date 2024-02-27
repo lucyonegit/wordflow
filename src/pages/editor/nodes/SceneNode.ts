@@ -52,8 +52,18 @@ export class CustomSceneNode extends ElementNode {
     dom.appendChild(time);
     return dom;
   }
+  $updateTime(time, dom) {
+    this.getWritable().time = time;
+    const timeDom = dom.querySelector('.scene-time');
+    if (timeDom) {
+      timeDom.textContent = time;
+    }
+  }
 
-  updateDOM() {
+  updateDOM(prevNode: CustomSceneNode, dom: HTMLElement) {
+    if (prevNode.time !== this.time) {
+      this.$updateTime(this.time, dom);
+    }
     return false;
   }
 
