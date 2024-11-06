@@ -10,6 +10,8 @@ import { SerializedEditorState,SerializedLexicalNode,TextNode } from 'lexical'
 import data from "../../mock/data/data";
 import { useStore } from "../../store/global";
 
+import {CustomGapNode} from './nodes/GapWord'
+import {CustomGapWordContentNode} from './nodes/GapWordContent'
 import { CustomSceneNode } from "./nodes/SceneNode";
 import { CustomWordContentNode } from './nodes/WordContentNode'
 import { CustomWordNode } from "./nodes/WordNode";
@@ -75,6 +77,8 @@ const ScriptProvider:React.FC = ()=> {
       CustomSceneNode,
       CustomWordContentNode,
       CustomWordNode,
+      CustomGapWordContentNode,
+      CustomGapNode,
       // {
       //   replace: TextNode,
       //   with: (node) => {
@@ -98,11 +102,11 @@ const ScriptProvider:React.FC = ()=> {
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div
           id="editorContainer"
-          style={{ width: "500px", height: "800px", overflow: "auto" }}
+          style={{ width: "500px", height: "800px", overflow: "auto" ,paddingRight:'20px'}}
           ref={warper}
         >
           {warperLoaded ? (
-            <div>
+            <div className="editor">
               <RichTextPlugin
                 placeholder={<span>"请输入内容"</span>}
                 contentEditable={<ContentEditable />}

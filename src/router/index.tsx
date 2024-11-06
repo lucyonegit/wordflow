@@ -5,7 +5,7 @@ import Editor from '../pages/editor/index'
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <div>Hello world!</div>,
+    element: <Editor/>,
   },
   {
     path: "/editor",

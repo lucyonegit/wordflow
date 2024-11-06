@@ -6,10 +6,12 @@ import {
 } from "lexical";
 
 import { useEvent } from "./hooks/useEvent";
+import {useGapEvent} from './hooks/useGapClick'
 import { handleDelete } from "./utils/eventHandle";
 const EventPlugin = () => {
   const [editor] = useLexicalComposerContext();
   useEvent(editor);
+  useGapEvent(editor);
 
   const handleBackspace = (e:KeyboardEvent) => {
     handleDelete(editor,e);

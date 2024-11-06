@@ -2,12 +2,14 @@ import {
   $createRangeSelection,
   $getSelection,
   $setSelection,
-  BaseSelection,
+  FORMAT_TEXT_COMMAND,
   LexicalEditor,
   type LexicalNode,
   RangeSelection,
 } from 'lexical';
 
+import { CustomGapNode } from '../../../nodes/GapWord';
+import { CustomGapWordContentNode } from '../../../nodes/GapWordContent';
 import { CustomSceneNode } from '../../../nodes/SceneNode';
 import { CustomWordContentNode } from '../../../nodes/WordContentNode'
 import {
@@ -15,11 +17,11 @@ import {
   offsetListMapItem,
   Word
 } from '../../../nodes/WordNode';
-
+import { mouseState } from '../hooks/useGapClick';
 export interface SelectDataType {
   nodes: Array<LexicalNode>;
   isClick: boolean;
-  selection: BaseSelection;
+  selection: RangeSelection;
   anchor: {
     point: any;
     node: CustomWordNode;
@@ -41,7 +43,7 @@ export interface SelectDataType {
  */
 export const setSelectRange = (
   editor: LexicalEditor,
-  node: CustomWordNode,
+  node: CustomWordNode | CustomGapNode,
   range: [number, number],
   callback?: () => void,
   isClick?: boolean
@@ -86,23 +88,55 @@ export const getWordGroupFromSelectionData = (selectionData: SelectDataType): {
   customWords: Array<offsetListMapItem>;
   hasDeleteWords: Array<offsetListMapItem>;
   insertWords: Array<any>;
+  gapNodes: {
+    hasFormatGapNodes: Array<CustomGapNode>;
+    needFarmatGapNodes: Array<{
+      node: CustomGapNode;
+      range: [number, number];
+      offset: number;
+    }>;
+  };
 } => {
-  debugger
   const anchor = selectionData.anchor;
   const focus = selectionData.focus;
   const wordGroup: {
     customWords: Array<offsetListMapItem>;
     hasDeleteWords: Array<offsetListMapItem>;
     insertWords: Array<any>;
+    gapNodes: {
+      hasFormatGapNodes: Array<CustomGapNode>;
+      needFarmatGapNodes: Array<{
+        node: CustomGapNode;
+        range: [number, number];
+        offset:number
+      }>; 
+    }
   } = {
     customWords: [],  //正常单词
     hasDeleteWords: [], // 已经删除的单词
-    insertWords: [] // 新增的单词
+    insertWords: [], // 新增的单词
+    gapNodes: {
+      hasFormatGapNodes:[],
+      needFarmatGapNodes: []
+    }
+    
   }
   // Anchor逻辑
   if (anchor.node.__type === 'text') {
     // 新增词节点
     wordGroup.insertWords.push(anchor.node)
+  } else if (anchor.node instanceof CustomGapNode) { 
+    const offset = getGapOffsetLeft(anchor.node)
+    const hasFormat = anchor.node.hasFormat('strikethrough')
+    if (hasFormat) {
+      wordGroup.gapNodes.hasFormatGapNodes.push(anchor.node)
+    } else {
+      wordGroup.gapNodes.needFarmatGapNodes.push({
+        node: anchor.node,
+        range: selectionData.isLeftToRight ? [anchor.offset + offset, offset + anchor.node.__text.length] : [offset , anchor.offset + offset],
+        offset
+      })
+    }
   } else {
     // 普通单词
     const anchorWords = Object.values(anchor.node.offsetListMap).filter(
@@ -123,11 +157,27 @@ export const getWordGroupFromSelectionData = (selectionData: SelectDataType): {
   // 
   // 选中的单词
   selectionData.selectedNodes.forEach((curNode) => {
+    if(curNode instanceof CustomGapWordContentNode) return
     const isInsert = curNode.__type === 'text'
+    const isGap = curNode instanceof CustomGapNode
     const hasFormat = curNode.hasFormat('strikethrough')
     if (isInsert) {
       // 新增词
       wordGroup.insertWords.push(curNode)
+    } else if (isGap) {
+      if (hasFormat) {
+        // 已经删除的Gap
+        wordGroup.gapNodes.hasFormatGapNodes.push(curNode)
+      } else {
+        // 未删除的Gap
+        const offset = getGapOffsetLeft(curNode)
+        wordGroup.gapNodes.needFarmatGapNodes.push({
+          node: curNode,
+          range: [offset, offset + curNode.__text.length],
+          offset
+        })
+      }
+      // 
     } else {
       if (hasFormat) {
         // 删除词
@@ -145,6 +195,19 @@ export const getWordGroupFromSelectionData = (selectionData: SelectDataType): {
   if (focus.node.__type === 'text') {
     // 新增词节点
     wordGroup.insertWords.push(focus.node)
+  } else if (focus.node instanceof CustomGapNode) { 
+    // Gap词
+    const hasFormat = focus.node.hasFormat('strikethrough');
+    if (hasFormat) {
+      wordGroup.gapNodes.hasFormatGapNodes.push(focus.node)
+    } else {
+    const offset = getGapOffsetLeft(focus.node)
+    wordGroup.gapNodes.needFarmatGapNodes.push({
+      node: focus.node,
+      range: selectionData.isLeftToRight ? [offset, focus.offset + offset] : [focus.offset + offset, focus.node.__text.length + offset],
+      offset
+    })
+    }
   } else {
     // 普通单词
     const focusWords = Object.values(focus.node.offsetListMap).filter(
@@ -284,21 +347,29 @@ export const expandMultiRowRange = (selectionData: SelectDataType): [number, num
   let focusOffset = selectionData.focus.offset;
   let anchorOffset = selectionData.anchor.offset;
   if (focusWordNode) {
-    if (focusWordNode.range) {
-      focusOffset = isLeftToRight ? focusWordNode.range[1] : focusWordNode.range[0];
+    if (focusWordNode instanceof CustomGapNode) {
+      //
     } else {
-      const node = focusWordNode as any
-      focusOffset = isLeftToRight ? node.__text.length : 0;
+        if (focusWordNode.range) {
+        focusOffset = isLeftToRight ? focusWordNode.range[1] : focusWordNode.range[0];
+      } else {
+        const node = focusWordNode as any
+        focusOffset = isLeftToRight ? node.__text.length : 0;
+      }
     }
-
   }
   if (anchorWordNode) {
-    if (anchorWordNode.range) {
-      anchorOffset = isLeftToRight ? anchorWordNode.range[0] : anchorWordNode.range[1];
-    } else {
-      const node = anchorWordNode as any
-      anchorOffset = isLeftToRight ? 0 : node.__text.length;
+    if (anchorWordNode instanceof CustomGapNode) {
+      //
     }
+    else {
+      if (anchorWordNode.range) {
+        anchorOffset = isLeftToRight ? anchorWordNode.range[0] : anchorWordNode.range[1];
+      } else {
+        const node = anchorWordNode as any
+        anchorOffset = isLeftToRight ? 0 : node.__text.length;
+      }
+      }
   }
   return [anchorOffset, focusOffset];
 };
@@ -311,6 +382,7 @@ export const getLeftRightWordByOffset = (node: CustomWordNode, offset: number) =
     left: null as any,
     right: null as any,
   };
+  debugger
   Object.keys(node.offsetListMap).forEach((key) => {
     const range = node.offsetListMap[key].range;
     if (range[0] !== range[1]) {
@@ -325,6 +397,19 @@ export const getLeftRightWordByOffset = (node: CustomWordNode, offset: number) =
   return wordNodes;
 };
 
+
+/**
+ * 获取gapWord的offset left的值，计算在整个gap-content中的偏移
+ */
+export const getGapOffsetLeft = (node: CustomGapNode) => {
+  let preGapWord = node.getPreviousSibling() as CustomGapNode;
+  let offset = 0
+  while (preGapWord && preGapWord instanceof CustomGapNode) {
+    offset += preGapWord.__text.length
+    preGapWord = preGapWord.getPreviousSibling() as CustomGapNode;
+  }
+  return offset
+}
 /**
  *  根据offset位置获取当前压中的单词
  */
@@ -355,34 +440,86 @@ export const computedSelectedWords = (
   selectionData: SelectDataType,
   [anchorOffset, focusOffset]: [number, number],
 ) => {
+  // 区间内选中的Gap
+  const selectedGapNodes: Array<CustomGapNode> = []
+  const anchorGapNode: {
+    node: CustomGapNode,
+    range:[number,number]
+  } = {
+    node: null as any,
+    range:[0,0]
+  }
+  const focusGapNode: {
+    node: CustomGapNode,
+    range:[number,number]
+  } = {
+    node: null as any,
+    range:[0,0]
+  }
+  //
+  let anchorWords: Array<offsetListMapItem> = []
+  let focusWords: Array<offsetListMapItem> = []
   const innerWords = selectionData.selectedNodes.reduce((pre, cur) => {
     if (cur.offsetListMap) {
       const wordsNode = Object.values(cur.offsetListMap);
       pre.push(...wordsNode);
     }
+    if (cur instanceof CustomGapNode) {
+      // 区间内选中的Gap词
+      selectedGapNodes.push(cur)
+    }
     return pre;
   }, [] as Array<offsetListMapItem>);
-  const anchorWords = Object.values(selectionData.anchor.node.offsetListMap).filter(
-    (offsetListItem) => {
-      return selectionData.isLeftToRight
-        ? offsetListItem.range[0] >= anchorOffset
-        : offsetListItem.range[1] <= anchorOffset;
-    },
-  );
-  const focusWords = Object.values(selectionData.focus.node.offsetListMap).filter(
-    (offsetListItem) => {
-      return selectionData.isLeftToRight
-        ? offsetListItem.range[1] <= focusOffset
-        : offsetListItem.range[0] >= focusOffset;
-    },
-  );
+  const anchorNode = selectionData.anchor.node as any
+  const focusNode = selectionData.focus.node as any
+  if (anchorNode instanceof CustomWordNode) {
+    anchorWords = Object.values(anchorNode.offsetListMap).filter(
+      (offsetListItem) => {
+        return selectionData.isLeftToRight
+          ? offsetListItem.range[0] >= anchorOffset
+          : offsetListItem.range[1] <= anchorOffset;
+      }
+    );
+  } else if (anchorNode instanceof CustomGapNode) {
+    // Gap词
+    const parent = anchorNode.getParent() as CustomGapWordContentNode;
+    const offset = getGapOffsetLeft(anchorNode)
+    const offsetRange:[number,number] = selectionData.isLeftToRight ? [selectionData.anchor.offset + offset, parent.length] : [0, selectionData.anchor.offset + offset]
+    anchorGapNode.node = anchorNode
+    anchorGapNode.range = offsetRange
+    
+  }
+  if (focusNode instanceof CustomWordNode) {
+    focusWords = Object.values(focusNode.offsetListMap).filter(
+      (offsetListItem) => {
+        return selectionData.isLeftToRight
+          ? offsetListItem.range[1] <= focusOffset
+          : offsetListItem.range[0] >= focusOffset;
+      }
+    );
+  } else if (focusNode instanceof CustomGapNode) {
+    // Gap词
+    const parent = focusNode.getParent() as CustomGapWordContentNode;
+    const offset = getGapOffsetLeft(focusNode)
+    const offsetRange:[number,number] = selectionData.isLeftToRight ? [0, selectionData.focus.offset + offset] : [selectionData.focus.offset + offset, parent.length]
+    focusGapNode.node = focusNode
+    focusGapNode.range = offsetRange
+  }
+  // 如果选中的单词是空的，则不选中
   const shouldNotDelete = focusWords.length === 1 && !focusWords[0].word.text
   const focusDelete = shouldNotDelete ? [] : focusWords
   const selectedWords = [...anchorWords, ...innerWords, ...focusDelete];
 
-  return selectedWords.sort(
-    (wordNode1, wordNode2) => wordNode1.word.st - wordNode2.word.st,
-  );
+  return {
+    customWords : selectedWords.sort(
+      (wordNode1, wordNode2) => wordNode1.word.st - wordNode2.word.st,
+    ),
+    gapNodes: {
+      anchor: anchorGapNode,
+      focus: focusGapNode,
+      selectedGapNodes
+    }
+  };
 };
 
 // 鼠标抬起-处理点击
@@ -439,9 +576,14 @@ export const handleClickKeyup = (
       }
     }
   } else {
-    setSelectRange(editor, node, [0, node.__text.length]);
-    // TODO: 选中新增词逻辑
-    callback && callback([], node);
+    if (node instanceof CustomGapNode) {
+      // Gap词
+    } else {
+      setSelectRange(editor, node, [0, node.__text.length]);
+      // TODO: 选中新增词逻辑
+      callback && callback([], node);
+    }
+    
   }
 };
 
@@ -454,6 +596,19 @@ export const handleRangeSelectKeyup = (
   const nodes = selectionData.nodes;
   if (nodes.length === 1) {
     // 处理单句选中
+    if (nodes[0].getType() === 'gap-word') {
+      const node = nodes[0] as CustomGapNode;
+      const range = getSelectRange(selectionData);
+      if (range[1] - range[0] === 1) {
+        mouseState.isMouseDown = false;
+        setSelectRange(editor, nodes[0] as CustomWordNode, [range[0], range[0]]);
+        return 
+      }
+      const offset = getGapOffsetLeft(node)
+      const ofsetRange = [(range[0] + offset), range[1] + offset];
+      console.log('range', ofsetRange);
+      return 
+    }
     const node = nodes[0] as CustomWordNode;
     const selectRange = getSelectRange(selectionData);
     const finnalRange = expandRange(node, selectRange);
@@ -472,8 +627,8 @@ export const handleRangeSelectKeyup = (
       selectionData.focus.node,
       range,
     );
-    const selectedWords = computedSelectedWords(selectionData, range);
-    callback && callback(selectedWords.filter((r) => r.format !== 4).map((r) => r.word));
+    const { customWords, gapNodes } = computedSelectedWords(selectionData, range);
+    callback && callback(customWords.filter((r) => r.format !== 4).map((r) => r.word));
   }
 };
 
@@ -520,7 +675,7 @@ export const findNextFocusWord = (node: CustomWordNode): CustomWordNode | null =
 };
 
 
-export const highlightNextWord = (editor, node: CustomWordNode): void => {
+export const highlightNextWord = (editor, node: CustomWordNode | CustomGapNode): void => {
   const previousNode = findNextFocusWord(node);
   if (previousNode) {
     if (previousNode.offsetListMap) {
@@ -534,4 +689,73 @@ export const highlightNextWord = (editor, node: CustomWordNode): void => {
   } else {
     console.log('end');
   }
+}
+
+export const handleDeleteCustomWord = (
+  editor: LexicalEditor,
+  node: CustomWordNode,
+  selectRange: [number, number],
+  event: KeyboardEvent,
+  callback: any
+) => {
+  event.preventDefault(); // 阻止默认删除事件
+  //处理选中单句删除的情况
+  const wordsNodes = Object.values(node.offsetListMap || {});
+  //光标未选中任何区间，判断是否需要创建选区
+  const needSelectRange = selectRange[0] === selectRange[1];
+  if (needSelectRange) {
+    // 查找光标左边的word
+    const nextWordNode = getLeftRightWordByOffset(node, selectRange[0]).left;
+    if (nextWordNode) {
+      // 先选中再处理
+      setSelectRange(editor, node, nextWordNode.range, () => {
+        editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
+        callback && callback([nextWordNode.word]);
+      });
+    }
+  } else {
+    const offsetListMapItemList = getWordNodesByOffsetRange(node, selectRange);
+    // 已经选中区间的直接处理
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
+    callback && callback(offsetListMapItemList.map((item) => item.word));
+  }
+  // 光标选中到节点头部，寻找并且选中下一个节点
+  if (selectRange[0] === 0) {
+    highlightNextWord(editor, node);
+  } else {
+    // 如果光标未闭合，就选取右侧的offset计算下一个高亮的word,(句子末尾点击的情况)，否则就选取左边的
+    const offset = needSelectRange ? selectRange[1] : selectRange[0];
+    const copyNode = JSON.parse(JSON.stringify(node));
+    const nextWordNode = getLeftRightWordByOffset(copyNode, offset).left;
+    const preWordNode = wordsNodes[nextWordNode.pre];
+    const range = needSelectRange ? preWordNode.range : nextWordNode.range;
+    setSelectRange(editor, copyNode, range);
+  }
+}
+
+export const handleDeleteGapWord = (
+  editor: LexicalEditor,
+  node: CustomGapNode,
+  event: KeyboardEvent,
+  selectionData: SelectDataType
+) => {
+  event.preventDefault();
+  const range = getSelectRange(selectionData);
+  const offset = getGapOffsetLeft(node)
+  const offsetRange = [(range[0] + offset), range[1] + offset];
+  const needSelectRange = range[0] === range[1];
+  if (needSelectRange) {
+      setSelectRange(editor, node, [range[1] - 1, range[1]], () => {
+        editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
+      })
+  } else {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
+  }
+  if (range[0] === 0) {
+    highlightNextWord(editor, node);
+  } else {
+    const nextRange:[number,number] = needSelectRange ? [range[1] - 2 ,range[1] - 1] : [range[0] - 1, range[0]];
+    setSelectRange(editor, node, nextRange);
+  }
+  console.log(`删除了GAP,id=${node.id}`,range, offsetRange);
 }

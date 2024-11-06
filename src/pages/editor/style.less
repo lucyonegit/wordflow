@@ -1,5 +1,10 @@
 #editorContainer {
   background: #2c2b2b;
+  .editor{
+    :focus-visible{
+      outline: none;
+    }
+  }
 
   .scene-node {
     display: flex;
@@ -60,6 +65,26 @@
       .scene-asr-word::selection {
         color: #fff;
         background-color: #147175;
+      }
+      .gap-word{
+        font-family: waveFont;
+        padding: 0;
+        margin: 0;
+        vertical-align: middle;
+        direction: ltr;
+        text-align: center;
+        font-size: 24px;
+        font-style: normal;
+        font-weight: 125;
+        line-height: 34px;
+        letter-spacing: 0.75px;
+        // font-optical-sizing: auto;
+        font-variation-settings: "wght" 125, "ROND" 0, "YELA" 0;
+        color: #caff1a;
+        &.Editor__textStrikethrough{
+          text-decoration:none;
+          color: #666;
+        }
       }
     }
 
