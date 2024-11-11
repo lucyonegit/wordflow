@@ -54,15 +54,15 @@ export class CustomGapNode extends TextNode {
     return splitNodes;
   }
   isUnmergeable() {
-    return false;
+    return true;
   }
-  mergeWithSibling(target: CustomGapNode) {
-    if (target instanceof CustomGapNode) {
-      return super.mergeWithSibling(target)
-    } else {
-      return this
-    }
-  }
+  // mergeWithSibling(target: CustomGapNode) {
+  //   if (target instanceof CustomGapNode) {
+  //     return super.mergeWithSibling(target)
+  //   } else {
+  //     return this
+  //   }
+  // }
   static importJSON(serializedNode: CustomWordNodeType) {
     const node = new CustomGapNode(serializedNode);
     node.setFormat(serializedNode.format);
@@ -71,7 +71,8 @@ export class CustomGapNode extends TextNode {
 
   createDOM(config: EditorConfig) {
     const dom = super.createDOM(config);
-    dom.classList.add('gap-word');
+    dom.classList.add('scene-asr-word');
+    dom.classList.add('scene-asr-word-gap');
     // 增加停顿词类名
     return dom;
   }

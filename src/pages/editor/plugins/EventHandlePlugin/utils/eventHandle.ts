@@ -46,7 +46,6 @@ export const handleDelete = (
       }
     }
   } else {
-    debugger
     event.preventDefault();
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
       const deleteWordsMap = getWordGroupFromSelectionData(selectionData)
@@ -81,13 +80,13 @@ export const handleDelete = (
 /**
  * 鼠标抬起事件
  */
-export const handleKeyUp = (editor: LexicalEditor, callback?: (words: Array<Word>, node?: CustomWordNode) => void) => {
+export const handleKeyUp = (editor: LexicalEditor, callback?: (node?: CustomWordNode) => void) => {
   editor.update(() => {
     const selectionData = getCurrentSelectionData();
     if (selectionData.isClick) {
-      handleClickKeyup(editor, selectionData, callback);
+      handleClickKeyup(selectionData, callback);
     } else {
-      handleRangeSelectKeyup(editor, selectionData, callback);
+      // handleRangeSelectKeyup(editor, selectionData, callback as any);
     }
   });
 };

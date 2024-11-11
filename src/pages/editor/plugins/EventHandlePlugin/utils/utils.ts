@@ -382,7 +382,6 @@ export const getLeftRightWordByOffset = (node: CustomWordNode, offset: number) =
     left: null as any,
     right: null as any,
   };
-  debugger
   Object.keys(node.offsetListMap).forEach((key) => {
     const range = node.offsetListMap[key].range;
     if (range[0] !== range[1]) {
@@ -524,67 +523,13 @@ export const computedSelectedWords = (
 
 // 鼠标抬起-处理点击
 export const handleClickKeyup = (
-  editor: LexicalEditor,
   selectionData: SelectDataType,
-  callback?: (words: Array<Word>, node?: CustomWordNode) => void,
+  callback?: (node?: CustomWordNode) => void,
 ) => {
   const nodes = selectionData.nodes;
-  // 点击单词
   const node = nodes[0] as CustomWordNode;
-  const words = Object.values(node.offsetListMap || {});
-  if (words.length) {
-    const nextSiblingNode = node.getNextSibling() as CustomWordNode;
-    const isLastClick = selectionData.focus.offset === words[words.length - 1].range[1];
-    // 有兄弟节点，而且不是删除线节点，就跳到后面兄弟节点的第一个word上
-    if (isLastClick && nextSiblingNode && !nextSiblingNode.hasFormat('strikethrough')) {
-      if (nextSiblingNode.offsetListMap) {
-        // 普通WordNode
-        const wordNodeLists = Object.values(nextSiblingNode.offsetListMap);
-        const wordNode = wordNodeLists.filter((wordNode) => wordNode.word.text)[0];
-        setSelectRange(editor, nextSiblingNode, wordNode.range);
-      } else {
-        // 新增词等
-        setSelectRange(editor, nextSiblingNode, [0, nextSiblingNode.__text.length]);
-      }
-
-    } else {
-      const selectRange = getSelectRange(selectionData);
-      if (node && node.offsetListMap) {
-        if (selectRange[0] >= words[words.length - 1].range[1]) {
-          // 已经到了最右边了,准备插入新增词
-          const rangeSelection = $createRangeSelection();
-          rangeSelection.formatText('italic')
-          rangeSelection.setTextNodeRange(node, selectRange[0], node, selectRange[0]);
-          $setSelection(rangeSelection);
-          return
-        }
-        Object.keys(node.offsetListMap).forEach((key) => {
-          // 寻找并且选中当前光标右边的word >=
-          const range = node.offsetListMap[key].range;
-
-          if (selectRange[0] >= range[0] && selectRange[0] < range[1]) {
-            const word = node.offsetListMap[key].word;
-            // if (word.st === word.ed) {
-            //   // 标点符号不处理
-            //   return;
-            // }
-            setSelectRange(editor, node, range, () => {
-              callback && callback([word], node);
-            }, true);
-          }
-        });
-      }
-    }
-  } else {
-    if (node instanceof CustomGapNode) {
-      // Gap词
-    } else {
-      setSelectRange(editor, node, [0, node.__text.length]);
-      // TODO: 选中新增词逻辑
-      callback && callback([], node);
-    }
-    
-  }
+  callback && callback(node);
+  
 };
 
 // 鼠标抬起-处理框选

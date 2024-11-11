@@ -1,14 +1,8 @@
 import { EditorConfig, type SerializedTextNode, type Spread, TextNode } from 'lexical';
 
-import { getCurrentSelectionData } from '../plugins/EventHandlePlugin/utils/utils';
-
-import { combineOffsetListMap, setOffsetListMap } from './utils/index';
 export interface CustomWordNodeProps {
   text: string;
   wordType: 'gap' | 'repeat' | 'tone' | 'other';
-  offsetListMap: {
-    [uuid: string]: offsetListMapItem;
-  };
 }
 export interface Word {
   id: string;
@@ -31,22 +25,15 @@ export type CustomWordNodeType = Spread<
     version: 1;
     text: string;
     wordType: 'gap' | 'repeat' | 'tone' | 'other';
-    offsetListMap: {
-      [uuid: string]: offsetListMapItem;
-    };
     __key: string | number;
   },
   SerializedTextNode
 >;
 export class CustomWordNode extends TextNode {
-  offsetListMap: { [uuid: string]: offsetListMapItem };
-  isActive: boolean;
   wordType: 'gap' | 'repeat' | 'tone' | 'other';
   constructor(word: CustomWordNodeProps, key?: string) {
-    const { text, offsetListMap, wordType } = word;
+    const { text, wordType } = word;
     super(text, key);
-    this.isActive = false;
-    this.offsetListMap = offsetListMap;
     this.wordType = wordType;
   }
   static getType() {
@@ -56,22 +43,18 @@ export class CustomWordNode extends TextNode {
   static clone(node: CustomWordNode) {
     const word = {
       text: node.__text,
-      offsetListMap: node.offsetListMap,
       wordType: node.wordType,
     };
     return new CustomWordNode(word, node.__key);
   }
 
   splitText(...offsets: [number, number]) {
-    const selectionData = getCurrentSelectionData();
-    // TODO: split的结果一定是wordNode（目前项目中没有其他节点，未来需要check）
     let splitNodes = super.splitText(...offsets) as Array<CustomWordNode>;
     if (splitNodes.length > 1) {
       splitNodes = splitNodes.map((node => {
         if (node.__type === 'text') {
           const newNode = new CustomWordNode({
             text: node.__text,
-            offsetListMap: [] as any,
             wordType: node.wordType,
           })
           node.replace(newNode)
@@ -79,31 +62,23 @@ export class CustomWordNode extends TextNode {
         }
         return node
       }))
-      // 拆分后有多个子WordNode的的情况才需要重组offsetListMap
-      setOffsetListMap(this, offsets, splitNodes, selectionData);
     }
     return splitNodes;
   }
+
   isSimpleText() {
     return true;
   }
-  mergeWithSibling(target: CustomWordNode) {
-    const mergeResult = super.mergeWithSibling(target) as CustomWordNode;
-    const offsetListMap = combineOffsetListMap(this.offsetListMap, target.offsetListMap);
-    mergeResult.offsetListMap = offsetListMap;
-    return mergeResult;
-  }
+  // mergeWithSibling(target: CustomWordNode) {
+  //   const mergeResult = super.mergeWithSibling(target) as CustomWordNode;
+  //   const offsetListMap = combineOffsetListMap(this.offsetListMap, target.offsetListMap);
+  //   mergeResult.offsetListMap = offsetListMap;
+  //   return mergeResult;
+  // }
 
-  isUnmergeable() {
-    if (
-      this.wordType === 'gap' ||
-      this.wordType === 'tone' ||
-      this.wordType === 'repeat'
-    ) {
-      return true;
-    }
-    return false;
-  }
+  // isUnmergeable() {
+  //   return true
+  // }
 
   static importJSON(serializedNode: CustomWordNodeType) {
     const node = new CustomWordNode(serializedNode);
@@ -114,32 +89,13 @@ export class CustomWordNode extends TextNode {
   createDOM(config: EditorConfig) {
     const dom = super.createDOM(config);
     dom.classList.add('scene-asr-word');
-    // 增加停顿词类名
-    if (this.wordType === 'gap') {
-      dom.classList.add('scene-asr-word-gap');
-    }
     // 增加语气词类名
     if (this.wordType === 'tone') {
       dom.classList.add('scene-asr-word-tone');
     }
-    // 增加重复词类名
-    if (this.wordType === 'repeat') {
-      dom.classList.add('scene-asr-word-repeat');
-    }
     return dom;
   }
-
-  _setActive(status: boolean) {
-    const r = this.getWritable();
-    r.isActive = status;
-  }
   updateDOM(prevNode: CustomWordNode, dom: HTMLElement, config: EditorConfig) {
-    if (prevNode.isActive !== this.isActive) {
-      dom.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }
     return super.updateDOM(prevNode, dom, config);
   }
 
@@ -147,7 +103,7 @@ export class CustomWordNode extends TextNode {
     const serializeJSON = {
       ...super.exportJSON(),
       type: 'scene-asr-word',
-      offsetListMap: this.offsetListMap,
+      wordType: this.wordType,
     };
     return serializeJSON;
   }

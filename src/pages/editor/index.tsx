@@ -5,51 +5,72 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { Button, Slider } from "antd";
-import { SerializedEditorState,SerializedLexicalNode,TextNode } from 'lexical'
+import {
+  $getSelection,
+  $isRangeSelection,
+  SerializedEditorState,
+  SerializedLexicalNode,
+  TextNode,
+} from "lexical";
 
 import data from "../../mock/data/data";
 import { useStore } from "../../store/global";
 
-import {CustomGapNode} from './nodes/GapWord'
-import {CustomGapWordContentNode} from './nodes/GapWordContent'
+import { CustomGapNode } from "./nodes/GapWord";
+import { CustomGapWordContentNode } from "./nodes/GapWordContent";
 import { CustomSceneNode } from "./nodes/SceneNode";
-import { CustomWordContentNode } from './nodes/WordContentNode'
+import { CustomWordContentNode } from "./nodes/WordContentNode";
 import { CustomWordNode } from "./nodes/WordNode";
 import EventPlugin from "./plugins/EventHandlePlugin";
-import HighLightPlugin from './plugins/HighLightPlugin'
-import SearchPlugin from './plugins/SearchPlugin'
+import { getCurrentSelectionData } from "./plugins/EventHandlePlugin/utils/utils";
 
-import './style.less'
+import "./style.less";
 
-const InitPlugin:React.FC = ()=> {
+const InitPlugin: React.FC = () => {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
-    const editorState = editor.parseEditorState(data as SerializedEditorState<SerializedLexicalNode>);
+    const editorState = editor.parseEditorState(
+      data as SerializedEditorState<SerializedLexicalNode>
+    );
     editor.setEditorState(editorState, { tag: "load" });
   }, [editor]);
-  return ''
-}
-const SplitPlugin:React.FC = ()=> {
+  return "";
+};
+const SplitPlugin: React.FC = () => {
   const [editor] = useLexicalComposerContext();
-  
+
   return (
     <Button
       onClick={() => {
-        const nodes = [...editor.getEditorState()._nodeMap.values()].filter(
-          (n) => n.__type === 'scene-asr-word',
-        );
         editor.update(() => {
-          nodes[1].replace(new TextNode('hello'))
-        })
-        
-        console.log(nodes[1])
+          // 获取当前选区信息
+          const r = getCurrentSelectionData();
+          const node = r.nodes[r.nodes.length - 1] as TextNode;
+          const offset = r.anchor.offset; // 保存当前选区的偏移量
+          // 临时允许拆分
+          node.getWritable().isUnmergeable = () => true;
+          const [partNode1] = node.splitText(
+            0,
+            offset
+          ) as TextNode[];
+          const method = offset === 0 ? 'insertBefore' : 'insertAfter';
+          partNode1[method](new CustomGapNode({
+            id: new Date().getTime().toString(),
+            text: '[BreakTime=1100]',
+          }));
+          node.getWritable().isUnmergeable = () => false;
+          const selection = $getSelection();
+          if (selection && $isRangeSelection(selection)) {
+            selection.setTextNodeRange(partNode1, offset === 0 ? 0 :partNode1.__text.length, partNode1, offset === 0 ? 0 : partNode1.__text.length);
+          }
+        });
       }}
     >
       拆分node
     </Button>
-  )
-}
-const ScriptProvider:React.FC = ()=> {
+  );
+};
+const ScriptProvider: React.FC = () => {
   const warper = useRef(null);
   const time1 = useRef(0);
   const setCurrentTime = useStore((state) => state.setCurrentTime);
@@ -102,7 +123,12 @@ const ScriptProvider:React.FC = ()=> {
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div
           id="editorContainer"
-          style={{ width: "500px", height: "800px", overflow: "auto" ,paddingRight:'20px'}}
+          style={{
+            width: "500px",
+            height: "800px",
+            overflow: "auto",
+            paddingRight: "20px",
+          }}
           ref={warper}
         >
           {warperLoaded ? (
@@ -112,16 +138,16 @@ const ScriptProvider:React.FC = ()=> {
                 contentEditable={<ContentEditable />}
                 ErrorBoundary={LexicalErrorBoundary}
               />
-              <InitPlugin/>
+              <InitPlugin />
               <EventPlugin />
-              <HighLightPlugin/>
+              {/* <HighLightPlugin /> */}
             </div>
           ) : (
             ""
           )}
         </div>
         <div style={{ width: "200px" }}>
-          {warperLoaded?<SearchPlugin></SearchPlugin>:''}
+    
           <Button
             onClick={() => {
               setInterval(() => {
@@ -145,6 +171,6 @@ const ScriptProvider:React.FC = ()=> {
       </div>
     </LexicalComposer>
   );
-}
+};
 
 export default ScriptProvider;
