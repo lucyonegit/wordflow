@@ -1,80 +1,63 @@
-import { $createRangeSelection, $setSelection, FORMAT_TEXT_COMMAND, LexicalEditor } from 'lexical';
+import { $createRangeSelection, $getSelection, $setSelection, LexicalEditor, LexicalNode, RangeSelection } from 'lexical';
 
 import { CustomGapNode } from '../../../nodes/GapWord';
-import { Word } from '../../../nodes/WordNode';
 import { CustomWordNode } from '../../../nodes/WordNode';
 
-import {
-  getCurrentSelectionData,
-  getLeftRightWordByOffset,
-  getSelectRange,
-  getWordGroupFromSelectionData,
-  handleClickKeyup,
-  handleDeleteCustomWord,
-  handleDeleteGapWord,
-  handleRangeSelectKeyup,
-  highlightNextWord,
-  setSelectRange,
-} from './utils';
+export interface SelectDataType {
+  nodes: Array<LexicalNode>;
+  isClick: boolean;
+  selection: RangeSelection;
+  anchor: {
+    point: any;
+    node: CustomWordNode;
+    offset: number;
+  };
+  focus: {
+    point: any;
+    node: CustomWordNode;
+    offset: number;
+  };
+  isMultiRowSelect: boolean;
+  indexNode: any;
+  isLeftToRight: boolean;
+  selectedNodes: Array<CustomWordNode>;
+}
 
-export const handleDelete = (
-  editor: LexicalEditor,
-  event: KeyboardEvent,
-  callback?: { (words: Array<Word>): void },
-) => {
-  const selectionData = getCurrentSelectionData();
-  const nodes = selectionData.nodes;
-  if (nodes.length === 1) {
-    const selectRange = getSelectRange(selectionData);
-    //处理选中单句删除的情况
-    const node = nodes[0] as CustomWordNode;
-    const wordsNodes = Object.values(node.offsetListMap || {});
-    // 删除的是普通自定义word
-    if (node instanceof CustomWordNode && node.offsetListMap && wordsNodes.length) {
-      handleDeleteCustomWord(editor, node, selectRange, event, callback);
-    } else {
-      //删除gap
-      if (node instanceof CustomGapNode) {
-        handleDeleteGapWord(editor, node, event, selectionData);
-      } else {
-      // 删除新增词等其他词，后面还需移动光标
-      setSelectRange(editor, node, [0, node.__text.length], () => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
-          // TODO: 返回值
-          callback && callback([]);
-        });
-      }
-    }
-  } else {
-    event.preventDefault();
-    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
-      const deleteWordsMap = getWordGroupFromSelectionData(selectionData)
-      // 格式化语气词
-      deleteWordsMap.gapNodes.needFarmatGapNodes.forEach((gap) => {
-        const range = $createRangeSelection();
-        range.setTextNodeRange(gap.node, gap.range[0] - gap.offset, gap.node, gap.range[1] - gap.offset);
-        if (!gap.node.hasFormat('strikethrough')) {
-          editor.update(() => {
-          $setSelection(range);
-            editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
-          });
-        }
-      })
-      callback && callback(deleteWordsMap.customWords.map((r) => r.word));
-      const firstNode = selectionData.indexNode.getNode() as CustomWordNode;
-      
-      if (selectionData.indexNode.offset === 0) {
-        highlightNextWord(editor, firstNode);
-      } else {
-        // 选取offset计算下一个高亮的word
-        const nextWordNode = getLeftRightWordByOffset(
-          firstNode,
-          selectionData.indexNode.offset,
-        ).left;
-        const range = nextWordNode.range;
-        setSelectRange(editor, firstNode, range);
-      }
-    }
+/**
+ * 获取当前选区数据
+ */
+export const getCurrentSelectionData = (): SelectDataType => {
+  const selection = $getSelection() as RangeSelection;
+  if (!selection) return {} as SelectDataType;
+  const nodes = selection.getNodes();
+  const isClick = selection.isCollapsed() && nodes.length === 1;
+  const selectData = {
+    nodes,
+    isClick,
+    selection,
+    anchor: {
+      point: selection.anchor,
+      node: selection.anchor.getNode() as CustomWordNode,
+      offset: selection.anchor.offset,
+    },
+    focus: {
+      point: selection.focus,
+      node: selection.focus.getNode() as CustomWordNode,
+      offset: selection.focus.offset,
+    },
+    isMultiRowSelect: nodes.length > 1,
+    indexNode:
+      nodes[0] === selection.anchor.getNode() ? selection.anchor : selection.focus,
+    isLeftToRight: nodes[0] === selection.anchor.getNode(),
+    selectedNodes: [] as Array<CustomWordNode>,
+  };
+  selectData.selectedNodes = nodes.filter((node) => {
+    const isAnchorOrFocus =
+      node === selectData.anchor.node || node === selectData.focus.node;
+    const isParent = node.__type === 'scene-node' || node.__type === 'words-content';
+    return !isAnchorOrFocus && !isParent;
+  }) as Array<CustomWordNode>;
+  return selectData;
 };
 
 /**
@@ -84,9 +67,38 @@ export const handleKeyUp = (editor: LexicalEditor, callback?: (node?: CustomWord
   editor.update(() => {
     const selectionData = getCurrentSelectionData();
     if (selectionData.isClick) {
-      handleClickKeyup(selectionData, callback);
+      const nodes = selectionData.nodes;
+      const node = nodes[0] as CustomWordNode;
+      callback && callback(node);
+      if (node instanceof CustomGapNode) {
+        // 如果是停顿词,光标默认打到末尾
+        editor.update(() => {
+          const rangeSelection = $createRangeSelection();
+          rangeSelection.setTextNodeRange(node, node.__text.length, node, node.__text.length);
+          $setSelection(rangeSelection);
+        });
+      }
     } else {
-      // handleRangeSelectKeyup(editor, selectionData, callback as any);
+      // const selectedNodes = selectionData.selectedNodes;
+      const { anchor, focus,isLeftToRight } = selectionData
+      // 初始化选区offset
+      const range = {
+        anchorOffset: anchor.offset,
+        focusOffset: focus.offset
+      };
+      if (anchor.node instanceof CustomGapNode) {
+        // 如果anchor是停顿词，扩展anchor选区
+        range.anchorOffset = isLeftToRight ? 0 :anchor.node.__text.length;
+      }
+      if (focus.node instanceof CustomGapNode) {
+        // 如果focus是停顿词,扩展focus选区
+        range.focusOffset = isLeftToRight ? focus.node.__text.length : 0
+      }
+      editor.update(() => {
+        const rangeSelection = $createRangeSelection();
+        rangeSelection.setTextNodeRange(anchor.node, range.anchorOffset, focus.node, range.focusOffset);
+        $setSelection(rangeSelection);
+      });
     }
   });
 };

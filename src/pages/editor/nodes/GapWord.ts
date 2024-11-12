@@ -1,7 +1,7 @@
 import { EditorConfig, type SerializedTextNode, type Spread, TextNode } from 'lexical';
 
 export interface CustomWordNodeProps {
-  text: string;
+  time: number;
   id: string;
 }
 export type CustomWordNodeType = Spread<
@@ -9,17 +9,19 @@ export type CustomWordNodeType = Spread<
     type: 'gap-word';
     id: string;
     version: 1;
-    text: string;
+    time:number,
     __key: string | number;
   },
   SerializedTextNode
 >;
 export class CustomGapNode extends TextNode {
-  id : string
+  id: string
+  time: number
   constructor(word: CustomWordNodeProps, key?: string) {
-    const { text, id} = word;
-    super(text, key);
+    const { id,time} = word;
+    super(`text: ${time}ms`, key);
     this.id = id
+    this.time = time
   }
   static getType() {
     return 'gap-word';
@@ -27,45 +29,34 @@ export class CustomGapNode extends TextNode {
 
   static clone(node: CustomGapNode) {
     const word = {
-      text: node.__text,
+      time: node.time,
       id: node.id,
     };
     return new CustomGapNode(word, node.__key);
   }
-
-  isSimpleText() {
-    return true;
+  isToken(): boolean {
+    return true
   }
-  splitText(...offsets: [number, number]) {
-    let splitNodes = super.splitText(...offsets);
-    if (splitNodes.length > 1) {
-      splitNodes = splitNodes.map((node => {
-        if (node.__type === 'text') {
-          const newNode = new CustomGapNode({
-            text: node.__text,
-            id: this.id
-          })
-          node.replace(newNode)
-          return newNode
-        }
-        return node
-      }))
-    }
-    return splitNodes;
-  }
-  isUnmergeable() {
-    return true;
-  }
-  // mergeWithSibling(target: CustomGapNode) {
-  //   if (target instanceof CustomGapNode) {
-  //     return super.mergeWithSibling(target)
-  //   } else {
-  //     return this
-  //   }
+  // isSimpleText() {
+  //   return false
   // }
+  // isTextEntity(): boolean {
+  //   return false
+  // }
+  isUnmergeable() {
+    return false;
+  }
+
+  mergeWithSibling(target: CustomGapNode) {
+    debugger
+    if (target instanceof CustomGapNode) {
+      return super.mergeWithSibling(target)
+    } else {
+      return this
+    }
+  }
   static importJSON(serializedNode: CustomWordNodeType) {
     const node = new CustomGapNode(serializedNode);
-    node.setFormat(serializedNode.format);
     return node;
   }
 
@@ -73,18 +64,23 @@ export class CustomGapNode extends TextNode {
     const dom = super.createDOM(config);
     dom.classList.add('scene-asr-word');
     dom.classList.add('scene-asr-word-gap');
+    dom.textContent = `text: ${this.time}ms`; 
     // 增加停顿词类名
     return dom;
   }
 
-  updateDOM(prevNode: CustomGapNode, dom: HTMLElement, config: EditorConfig) {
-    return super.updateDOM(prevNode, dom, config);
+  updateDOM(prevNode: CustomGapNode) {
+    if (prevNode.time !== this.time || prevNode.__text !== this.__text) {
+      return true
+    }
+    return false
   }
 
   exportJSON() {
     const serializeJSON = {
       ...super.exportJSON(),
-      type: 'gap-word'
+      type: 'gap-word',
+      time: this.time
     };
     return serializeJSON;
   }

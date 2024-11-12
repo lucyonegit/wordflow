@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
 import { LexicalEditor } from 'lexical';
 
-import { useStore } from '../../../../../store/global';
 import { handleKeyUp } from '../utils/eventHandle';
 export const useEvent = (editor: LexicalEditor) => {
-  const setSelectedIds = useStore((state) => state.setSelectedIds);
   useEffect(() => {
     const rootDom = editor.getRootElement();
 
@@ -16,5 +14,5 @@ export const useEvent = (editor: LexicalEditor) => {
     return () => {
       rootDom && rootDom.removeEventListener('mouseup', handle);
     };
-  }, [editor, setSelectedIds]);
+  }, [editor]);
 };

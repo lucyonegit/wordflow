@@ -17,12 +17,11 @@ import data from "../../mock/data/data";
 import { useStore } from "../../store/global";
 
 import { CustomGapNode } from "./nodes/GapWord";
-import { CustomGapWordContentNode } from "./nodes/GapWordContent";
 import { CustomSceneNode } from "./nodes/SceneNode";
 import { CustomWordContentNode } from "./nodes/WordContentNode";
 import { CustomWordNode } from "./nodes/WordNode";
 import EventPlugin from "./plugins/EventHandlePlugin";
-import { getCurrentSelectionData } from "./plugins/EventHandlePlugin/utils/utils";
+import { getCurrentSelectionData } from "./plugins/EventHandlePlugin/utils/eventHandle";
 
 import "./style.less";
 
@@ -40,6 +39,7 @@ const SplitPlugin: React.FC = () => {
   const [editor] = useLexicalComposerContext();
 
   return (
+    <div>
     <Button
       onClick={() => {
         editor.update(() => {
@@ -56,7 +56,7 @@ const SplitPlugin: React.FC = () => {
           const method = offset === 0 ? 'insertBefore' : 'insertAfter';
           partNode1[method](new CustomGapNode({
             id: new Date().getTime().toString(),
-            text: '[BreakTime=1100]',
+            time: parseInt(1000 * Math.random() + ''),
           }));
           node.getWritable().isUnmergeable = () => false;
           const selection = $getSelection();
@@ -67,7 +67,12 @@ const SplitPlugin: React.FC = () => {
       }}
     >
       拆分node
-    </Button>
+      </Button>
+      <Button onClick={() => {
+        const wordsNodes = [...editor.getEditorState()._nodeMap.values()];
+        console.log(wordsNodes);
+      }}>获取所有nodes</Button>
+      </div>
   );
 };
 const ScriptProvider: React.FC = () => {
@@ -98,19 +103,17 @@ const ScriptProvider: React.FC = () => {
       CustomSceneNode,
       CustomWordContentNode,
       CustomWordNode,
-      CustomGapWordContentNode,
       CustomGapNode,
-      // {
-      //   replace: TextNode,
-      //   with: (node) => {
-      //     const config = {
-      //       text: node.__text,
-      //       offsetListMap: [],
-      //       ...node,
-      //     };
-      //     return new CustomWordNode(config);
-      //   },
-      // },
+      {
+        replace: TextNode,
+        with: (node) => {
+          const config = {
+            text: node.__text,
+            ...node,
+          };
+          return new CustomWordNode(config);
+        },
+      },
     ],
   });
   const [warperLoaded, setWarperLoaded] = useState(false);
