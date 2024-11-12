@@ -47,8 +47,7 @@ const SplitPlugin: React.FC = () => {
           const r = getCurrentSelectionData();
           const node = r.nodes[r.nodes.length - 1] as TextNode;
           const offset = r.anchor.offset; // 保存当前选区的偏移量
-          // 临时允许拆分
-          node.getWritable().isUnmergeable = () => true;
+
           const [partNode1] = node.splitText(
             0,
             offset
@@ -58,7 +57,6 @@ const SplitPlugin: React.FC = () => {
             id: new Date().getTime().toString(),
             time: parseInt(1000 * Math.random() + ''),
           }));
-          node.getWritable().isUnmergeable = () => false;
           const selection = $getSelection();
           if (selection && $isRangeSelection(selection)) {
             selection.setTextNodeRange(partNode1, offset === 0 ? 0 :partNode1.__text.length, partNode1, offset === 0 ? 0 : partNode1.__text.length);

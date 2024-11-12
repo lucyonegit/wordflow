@@ -1,5 +1,7 @@
 import { EditorConfig, type SerializedTextNode, type Spread, TextNode } from 'lexical';
 
+import { CustomWordNode } from './WordNode';
+
 export interface CustomWordNodeProps {
   time: number;
   id: string;
@@ -37,26 +39,27 @@ export class CustomGapNode extends TextNode {
   isToken(): boolean {
     return true
   }
-  // isSimpleText() {
-  //   return false
-  // }
-  // isTextEntity(): boolean {
-  //   return false
-  // }
+  isSimpleText() {
+    return true
+  }
   isUnmergeable() {
     return false;
   }
 
-  mergeWithSibling(target: CustomGapNode) {
-    debugger
+  mergeWithSibling(target: CustomGapNode | CustomWordNode) {
     if (target instanceof CustomGapNode) {
-      return super.mergeWithSibling(target)
+      const t = target.time + this.time;
+      this.time = t;
+      this.setTextContent(`text: ${t}ms`);
+      target.remove();
+      return this
     } else {
       return this
     }
   }
   static importJSON(serializedNode: CustomWordNodeType) {
-    const node = new CustomGapNode(serializedNode);
+    const node = $createWordNode(serializedNode);
+    node.setFormat(serializedNode.format);
     return node;
   }
 
@@ -69,7 +72,8 @@ export class CustomGapNode extends TextNode {
     return dom;
   }
 
-  updateDOM(prevNode: CustomGapNode) {
+  updateDOM(prevNode: CustomGapNode, dom: HTMLElement, config: EditorConfig) {
+    super.updateDOM(prevNode, dom, config);
     if (prevNode.time !== this.time || prevNode.__text !== this.__text) {
       return true
     }

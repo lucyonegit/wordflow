@@ -1,5 +1,7 @@
 import { EditorConfig, type SerializedTextNode, type Spread, TextNode } from 'lexical';
 
+import { CustomGapNode } from './GapWord';
+
 export interface CustomWordNodeProps {
   text: string;
   wordType: 'gap' | 'repeat' | 'tone' | 'other';
@@ -66,19 +68,16 @@ export class CustomWordNode extends TextNode {
     return splitNodes;
   }
 
+  mergeWithSibling(target: CustomWordNode | CustomGapNode) {
+    if(target instanceof CustomWordNode) {
+      return super.mergeWithSibling(target)
+    }
+    return this;
+  }
+
   isSimpleText() {
     return true;
   }
-  // mergeWithSibling(target: CustomWordNode) {
-  //   const mergeResult = super.mergeWithSibling(target) as CustomWordNode;
-  //   const offsetListMap = combineOffsetListMap(this.offsetListMap, target.offsetListMap);
-  //   mergeResult.offsetListMap = offsetListMap;
-  //   return mergeResult;
-  // }
-
-  // isUnmergeable() {
-  //   return true
-  // }
 
   static importJSON(serializedNode: CustomWordNodeType) {
     const node = new CustomWordNode(serializedNode);
