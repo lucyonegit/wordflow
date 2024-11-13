@@ -6,20 +6,6 @@ export interface CustomWordNodeProps {
   text: string;
   wordType: 'gap' | 'repeat' | 'tone' | 'other';
 }
-export interface Word {
-  id: string;
-  text: string;
-  type: number;
-  st: number;
-  ed: number;
-}
-export interface offsetListMapItem {
-  range: [number, number];
-  pre: number;
-  next: number;
-  word: Word;
-  format: number;
-}
 export type CustomWordNodeType = Spread<
   {
     type: 'scene-asr-word';
@@ -32,11 +18,11 @@ export type CustomWordNodeType = Spread<
   SerializedTextNode
 >;
 export class CustomWordNode extends TextNode {
-  wordType: 'gap' | 'repeat' | 'tone' | 'other';
+  wordType: 'gap' | 'repeat' | 'tone' | 'other' = 'other';
   constructor(word: CustomWordNodeProps, key?: string) {
     const { text, wordType } = word;
     super(text, key);
-    this.wordType = wordType;
+    this.wordType = wordType||'other';
   }
   static getType() {
     return 'scene-asr-word';
@@ -88,10 +74,6 @@ export class CustomWordNode extends TextNode {
   createDOM(config: EditorConfig) {
     const dom = super.createDOM(config);
     dom.classList.add('scene-asr-word');
-    // 增加语气词类名
-    if (this.wordType === 'tone') {
-      dom.classList.add('scene-asr-word-tone');
-    }
     return dom;
   }
   updateDOM(prevNode: CustomWordNode, dom: HTMLElement, config: EditorConfig) {

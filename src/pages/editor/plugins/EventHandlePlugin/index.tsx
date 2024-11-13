@@ -1,14 +1,24 @@
+import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   COMMAND_PRIORITY_EDITOR,
-  DRAGSTART_COMMAND,
   KEY_BACKSPACE_COMMAND,
 } from "lexical";
 
-import { useEvent } from "./hooks/useEvent";
+import { handleKeyUp } from "./utils/eventHandle";
 const EventPlugin = () => {
   const [editor] = useLexicalComposerContext();
-  useEvent(editor);
+  useEffect(() => {
+    const rootDom = editor.getRootElement();
+    const handle = () =>
+      handleKeyUp(editor, (node: any) => {
+        console.log(node);
+      });
+    rootDom && rootDom.addEventListener('mouseup', handle);
+    return () => {
+      rootDom && rootDom.removeEventListener('mouseup', handle);
+    };
+  }, [editor]);
 
   const handleBackspace = () => {
     return true;
@@ -16,14 +26,6 @@ const EventPlugin = () => {
   editor.registerCommand(
     KEY_BACKSPACE_COMMAND,
     handleBackspace,
-    COMMAND_PRIORITY_EDITOR
-  );
-  editor.registerCommand(
-    DRAGSTART_COMMAND,
-    (e) => {
-      e.preventDefault();
-      return true;
-    },
     COMMAND_PRIORITY_EDITOR
   );
   return '';

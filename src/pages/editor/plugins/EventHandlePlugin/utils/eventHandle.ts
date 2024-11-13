@@ -79,7 +79,6 @@ export const handleKeyUp = (editor: LexicalEditor, callback?: (node?: CustomWord
         });
       }
     } else {
-      // const selectedNodes = selectionData.selectedNodes;
       const { anchor, focus,isLeftToRight } = selectionData
       // 初始化选区offset
       const range = {

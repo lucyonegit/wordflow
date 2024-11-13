@@ -48,14 +48,19 @@ const SplitPlugin: React.FC = () => {
           const node = r.nodes[r.nodes.length - 1] as TextNode;
           const offset = r.anchor.offset; // 保存当前选区的偏移量
 
-          const [partNode1] = node.splitText(
+          const [partNode1, partNode2] = node.splitText(
             0,
             offset
           ) as TextNode[];
+          // 确保新分割出来的节点文本内容被更新
+          partNode1.setTextContent(partNode1.__text);
+          partNode2.setTextContent(partNode2.__text);
           const method = offset === 0 ? 'insertBefore' : 'insertAfter';
+          const time = parseInt(1000 * Math.random() + '');
           partNode1[method](new CustomGapNode({
             id: new Date().getTime().toString(),
-            time: parseInt(1000 * Math.random() + ''),
+            time,
+            showFormatFn: (time: number) => `${time}ms`
           }));
           const selection = $getSelection();
           if (selection && $isRangeSelection(selection)) {
@@ -67,8 +72,19 @@ const SplitPlugin: React.FC = () => {
       拆分node
       </Button>
       <Button onClick={() => {
-        const wordsNodes = [...editor.getEditorState()._nodeMap.values()];
-        console.log(wordsNodes);
+        editor.getEditorState().read(() => {
+          const r = editor.getEditorState().toJSON();
+          console.log(r.root.children.reduce((pre, item) => {
+            const nodes = (item as any).children[0].children;
+            const lineText = nodes.reduce((pre1, item1) => {
+              // TODO: 这里需要根据node类型处理字符串拼接规则
+              pre1 += item1.text
+              return pre1
+            }, '')
+            pre += lineText;
+            return pre
+          },''));
+        })
       }}>获取所有nodes</Button>
       </div>
   );
