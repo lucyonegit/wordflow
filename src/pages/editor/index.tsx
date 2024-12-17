@@ -53,8 +53,8 @@ const SplitPlugin: React.FC = () => {
             offset
           ) as TextNode[];
           // 确保新分割出来的节点文本内容被更新
-          partNode1.setTextContent(partNode1.__text);
-          partNode2.setTextContent(partNode2.__text);
+          partNode1 && partNode1.setTextContent(partNode1.__text);
+          partNode2 && partNode2.setTextContent(partNode2.__text);
           const method = offset === 0 ? 'insertBefore' : 'insertAfter';
           const time = parseInt(1000 * Math.random() + '');
           partNode1[method](new CustomGapNode({
